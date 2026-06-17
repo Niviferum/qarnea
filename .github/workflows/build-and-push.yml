@@ -3,7 +3,6 @@ name: build-and-push
 on:
   push:
     branches:
-      - main
       - master
 
 jobs:
@@ -14,13 +13,18 @@ jobs:
       contents: read
       packages: write
 
+    env:
+      DATABASE_URL: postgresql://user:password@localhost:5432/app?schema=public
+      DISABLE_ERD: "true"
+
     steps:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Create temporary env file for Prisma
+      - name: Create temporary env file for Prisma and Docker build
         run: |
           echo 'DATABASE_URL="postgresql://user:password@localhost:5432/app?schema=public"' > .env
+          echo 'DISABLE_ERD="true"' >> .env
           echo ".env created for Prisma"
 
       - name: Setup Node
