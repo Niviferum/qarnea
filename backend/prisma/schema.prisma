@@ -60,6 +60,13 @@ enum SourceScan {
   inconnu
 }
 
+enum StatutCommande {
+  en_attente
+  payee
+  echouee
+  remboursee
+}
+
 
 // ============================================================
 // UTILISATEUR
@@ -89,6 +96,7 @@ model Utilisateur {
   fcm_token               String?   @unique
 
   abonnements             Abonnement[]
+  commandes               Commande[]
   producteur              Producteur?   @relation("UtilisateurProducteur")
   producteurs_proposes    Producteur[]  @relation("UtilisateurProposeur")
   producteurs_verifies    Producteur[]  @relation("AdminVerificateur")
@@ -123,6 +131,30 @@ model Abonnement {
   utilisateur                Utilisateur      @relation(fields: [id_utilisateur], references: [id_utilisateur])
 
   @@map("abonnement")
+}
+
+// ============================================================
+// COMMANDE
+// ============================================================
+
+model Commande {
+  id_commande                String          @id @default(uuid())
+  stripe_payment_intent_id   String          @unique
+  id_utilisateur             String
+  id_producteur              String
+  description                String          @db.VarChar(200)
+  prix_producteur            Decimal         @db.Decimal(10, 2)
+  commission_qarnea          Decimal         @db.Decimal(10, 2)
+  frais_stripe               Decimal         @db.Decimal(10, 2)
+  total                      Decimal         @db.Decimal(10, 2)
+  statut                     StatutCommande  @default(en_attente)
+  date_creation              DateTime        @default(now())
+  date_paiement              DateTime?
+
+  utilisateur                Utilisateur     @relation(fields: [id_utilisateur], references: [id_utilisateur])
+  producteur                 Producteur      @relation(fields: [id_producteur], references: [id_producteur])
+
+  @@map("commande")
 }
 
 // ============================================================
@@ -178,6 +210,7 @@ model Producteur {
   types_production         ProducteurTypeProduction[]
   alternatives             AlternativeLocale[]
   labels                   ProducteurLabel[]
+  commandes                Commande[]
 
   @@map("producteur")
 }
@@ -325,6 +358,7 @@ model AlternativeLocale {
   id_produit_scanne       String
   id_producteur           String
   type_produit_equivalent String?   @db.VarChar(255)
+  prix_unitaire           Decimal?  @db.Decimal(8, 2)
   distance_km             Decimal?  @db.Decimal(6, 2)
   score_pertinence        Int?
   date_suggestion         DateTime

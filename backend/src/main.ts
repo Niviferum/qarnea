@@ -9,7 +9,8 @@ import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import { AppModule } from './app.module';
 
 async function bootstrap() {
-  const app = await NestFactory.create(AppModule);
+  // rawBody: true pour que req.rawBody soit disponible sur /commandes/webhook (vérif signature Stripe)
+  const app = await NestFactory.create(AppModule, { rawBody: true });
 
   app.enableCors({ origin: '*' });
   app.use(helmet({ contentSecurityPolicy: false }));
