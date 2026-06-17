@@ -8,6 +8,7 @@ import {
   UseGuards,
 } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth, ApiBody } from '@nestjs/swagger';
+import { Throttle } from '@nestjs/throttler';
 import { AuthService } from './auth.service';
 import { RegisterDto } from './dto/register.dto';
 import { LoginDto } from './dto/login.dto';
@@ -20,6 +21,7 @@ export class AuthController {
   constructor(private readonly authService: AuthService) {}
 
   @Post('register')
+  @Throttle({ default: { ttl: 60_000, limit: 5 } })
   @ApiOperation({ summary: 'Inscription' })
   @ApiResponse({ status: 201, description: 'Compte cree, tokens retournes' })
   @ApiResponse({ status: 409, description: 'Email deja utilise' })
@@ -28,6 +30,7 @@ export class AuthController {
   }
 
   @Post('login')
+  @Throttle({ default: { ttl: 60_000, limit: 10 } })
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Connexion' })
   @ApiResponse({ status: 200, description: 'Tokens retournes' })
@@ -37,6 +40,7 @@ export class AuthController {
   }
 
   @Post('refresh')
+  @Throttle({ default: { ttl: 60_000, limit: 20 } })
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Renouvellement du access token via le refresh token' })
   @ApiBody({ schema: { properties: { refresh_token: { type: 'string' } } } })

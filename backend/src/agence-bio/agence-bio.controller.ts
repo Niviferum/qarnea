@@ -48,6 +48,8 @@ export class AgenceBioController {
   constructor(private readonly agenceBioService: AgenceBioService) {}
 
   @Get('operateurs')
+  @ApiBearerAuth()
+  @UseGuards(JwtAuthGuard)
   @ApiOperation({ summary: 'Rechercher dans le cache Agence Bio' })
   @ApiResponse({ status: 200, description: 'Liste paginee retournee' })
   rechercherOperateurs(@Query() query: RechercheOperateursDto) {
@@ -55,6 +57,8 @@ export class AgenceBioController {
   }
 
   @Get('operateurs/:numero_bio')
+  @ApiBearerAuth()
+  @UseGuards(JwtAuthGuard)
   @ApiOperation({ summary: 'Detail d\'un operateur BIO' })
   @ApiResponse({ status: 200, description: 'Operateur retourne' })
   @ApiResponse({ status: 404, description: 'Operateur introuvable' })
