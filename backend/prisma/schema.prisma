@@ -1,0 +1,419 @@
+generator client {
+  provider = "prisma-client-js"
+  output   = "../src/generated/prisma"
+}
+
+generator erd {
+  provider = "prisma-erd-generator"
+  output   = "./ERD.svg"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+// ============================================================
+// ENUMS
+// ============================================================
+
+enum Role {
+  user
+  supporter
+  producteur
+  admin
+}
+
+enum StatutCompte {
+  actif
+  restricted
+  deleted
+}
+
+enum TypeAbonnement {
+  mensuel
+  annuel
+}
+
+enum StatutAbonnement {
+  actif
+  annule
+  expire
+  en_attente
+}
+
+enum StatutVerification {
+  verified
+  pending
+  rejected
+  not_submitted
+}
+
+enum RayonFloutage {
+  km_5
+  km_10
+  km_25
+}
+
+enum SourceScan {
+  open_food_facts
+  manuel
+  inconnu
+}
+
+
+// ============================================================
+// UTILISATEUR
+// ============================================================
+
+model Utilisateur {
+  id_utilisateur          String    @id @default(uuid()) @map("id_utilisateur")
+  email                   String    @unique
+  password_hash           String
+  nom                     String
+  prenom                  String
+  telephone               String?
+  date_naissance          DateTime? @db.Date
+  date_inscription        DateTime  @default(now())
+  date_derniere_connexion DateTime?
+  role                    Role      @default(user)
+  statut_compte           StatutCompte @default(actif)
+  localisation_autorisee  Boolean   @default(true)
+  localisation_lat        Float?
+  localisation_lng        Float?
+  ville_preferee          String?
+  rayon_recherche_defaut  Int       @default(20)
+  langue                  String    @default("fr") @db.VarChar(5)
+  accepte_notifications   Boolean   @default(true)
+  avatar_url              String?
+  stripe_customer_id      String?   @unique
+  fcm_token               String?   @unique
+
+  abonnements             Abonnement[]
+  producteur              Producteur?   @relation("UtilisateurProducteur")
+  producteurs_proposes    Producteur[]  @relation("UtilisateurProposeur")
+  producteurs_verifies    Producteur[]  @relation("AdminVerificateur")
+  produits_scannes        ProduitScanne[]
+  recherches              RechercheUtilisateur[]
+  notifications           Notification[]
+  logs                    Log[]
+  actions_admin           ActionAdmin[]
+
+  @@map("utilisateur")
+}
+
+// ============================================================
+// ABONNEMENT
+// ============================================================
+
+model Abonnement {
+  id_abonnement              String           @id @default(uuid())
+  id_utilisateur             String
+  stripe_subscription_id     String?          @unique
+  type_abonnement            TypeAbonnement
+  statut                     StatutAbonnement
+  montant                    Decimal          @db.Decimal(10, 2)
+  devise                     String           @db.VarChar(3)
+  date_debut                 DateTime
+  date_fin                   DateTime?
+  date_prochain_paiement     DateTime?
+  date_annulation            DateTime?
+  renouvellement_automatique Boolean          @default(true)
+  raison_annulation          String?
+
+  utilisateur                Utilisateur      @relation(fields: [id_utilisateur], references: [id_utilisateur])
+
+  @@map("abonnement")
+}
+
+// ============================================================
+// PRODUCTEUR
+// ============================================================
+
+model Producteur {
+  id_producteur            String    @id @default(uuid())
+  id_utilisateur           String    @unique
+  numero_bio               String?   @unique @db.VarChar(20)  // lien vers AgenceBioOperateur si certifié bio
+  nom_exploitation         String    @db.VarChar(100)
+  raison_sociale           String    @unique @db.VarChar(100)
+  siret                    String    @db.VarChar(14)
+  description              String    @db.VarChar(300)
+  description_pratiques    String?   @db.VarChar(300)
+  adresse_ligne1           String    @db.VarChar(50)
+  adresse_ligne2           String?   @db.VarChar(50)
+  ville                    String    @db.VarChar(50)
+  region                   String    @db.VarChar(50)
+  departement              String    @db.VarChar(50)
+  coordonnees_lat          Float
+  coordonnees_lng          Float
+  afficher_adresse_exacte  Boolean   @default(true)
+  rayon_floutage_km        RayonFloutage?
+  telephone                String    @db.VarChar(20)
+  email_contact            String    @unique @db.VarChar(50)
+  site_web                 String?   @db.VarChar(50)
+  facebook_url             String?   @db.VarChar(50)
+  instagram_url            String?   @db.VarChar(50)
+  horaires_ouverture       Json
+  jours_marches            String?   @db.VarChar(300)
+  vente_directe            Boolean
+  vente_paniers            Boolean
+  livraison_possible       Boolean
+  rayon_livraison_km       Int?
+  click_and_collect        Boolean   @default(false)
+  commande_en_ligne        Boolean?  @default(false)
+  photo_profil_url         String?
+  photos_exploitation      String[]
+  statut_verification      StatutVerification
+  date_verification        DateTime?
+  id_admin_verificateur    String?
+  note_admin               String?   @db.VarChar(300)
+  id_utilisateur_proposeur String?
+  date_creation            DateTime  @default(now())
+  date_modification        DateTime  @default(now()) @updatedAt
+  visible_publiquement     Boolean   @default(true)
+
+  utilisateur              Utilisateur   @relation("UtilisateurProducteur", fields: [id_utilisateur], references: [id_utilisateur])
+  admin_verificateur       Utilisateur?  @relation("AdminVerificateur", fields: [id_admin_verificateur], references: [id_utilisateur])
+  utilisateur_proposeur    Utilisateur?  @relation("UtilisateurProposeur", fields: [id_utilisateur_proposeur], references: [id_utilisateur])
+  operateur_bio            AgenceBioOperateur? @relation(fields: [numero_bio], references: [numero_bio])
+  types_production         ProducteurTypeProduction[]
+  alternatives             AlternativeLocale[]
+  labels                   ProducteurLabel[]
+
+  @@map("producteur")
+}
+
+// ============================================================
+// AGENCE BIO OPERATEUR (cache de l'annuaire officiel)
+// ============================================================
+
+model AgenceBioOperateur {
+  numero_bio              String    @id @db.VarChar(20)
+  raison_sociale          String    @db.VarChar(200)
+  siret                   String?   @db.VarChar(14)
+  adresse                 String?   @db.VarChar(200)
+  code_postal             String?   @db.VarChar(5)
+  ville                   String?   @db.VarChar(100)
+  departement             String?   @db.VarChar(100)
+  coordonnees_lat         Float?
+  coordonnees_lng         Float?
+  geocodage_effectue      Boolean   @default(false)  // true dès que lat/lng ont été résolus via API Adresse
+  produits_certifies      Json?     // tableau brut retourné par l'API Agence Bio
+  activites               Json?     // codes NAF et activités déclarées
+  organisme_certificateur String?   @db.VarChar(100)
+  date_mise_a_jour        DateTime  @default(now()) @updatedAt
+
+  producteur              Producteur?           // null si non inscrit sur Qarnea
+
+  @@map("agence_bio_operateur")
+}
+
+// ============================================================
+// TYPE PRODUCTION
+// ============================================================
+
+model TypeProduction {
+  id_type_production  String    @id @default(uuid())
+  nom                 String    @db.VarChar(50)
+  slug                String    @unique @db.VarChar(300)
+  description         String    @db.VarChar(300)
+  id_categorie_parent String?
+
+  categorie_parent    TypeProduction?  @relation("TypeProductionParent", fields: [id_categorie_parent], references: [id_type_production])
+  sous_categories     TypeProduction[] @relation("TypeProductionParent")
+  producteurs         ProducteurTypeProduction[]
+
+  @@map("type_production")
+}
+
+// ============================================================
+// PRODUCTEUR TYPE PRODUCTION (liaison)
+// ============================================================
+
+model ProducteurTypeProduction {
+  id_producteur              String
+  id_type_production         String
+  production_principale      Boolean
+  volume_annuel              Int?
+  disponibilite_saisonniere  Json?
+
+  producteur                 Producteur     @relation(fields: [id_producteur], references: [id_producteur])
+  type_production            TypeProduction @relation(fields: [id_type_production], references: [id_type_production])
+
+  @@id([id_producteur, id_type_production])
+  @@map("producteur_type_production")
+}
+
+// ============================================================
+// LABEL
+// ============================================================
+
+model Label {
+  id_label                String    @id @default(uuid())
+  nom                     String    @unique @db.VarChar(100)
+  code                    String    @unique @db.VarChar(20)
+  description             String?
+  organisme_certificateur String?   @db.VarChar(150)
+  logo_url                String?
+  site_web                String?
+  niveau_exigence         String?   @db.VarChar(20)
+  type_label              String?   @db.VarChar(50)
+  actif                   Boolean   @default(true)
+
+  producteurs             ProducteurLabel[]
+
+  @@map("label")
+}
+
+// ============================================================
+// PRODUCTEUR LABEL (liaison)
+// ============================================================
+
+model ProducteurLabel {
+  id_producteur_label  String    @id @default(uuid())
+  id_producteur        String
+  id_label             String
+  numero_certification String?
+  date_obtention       DateTime?
+  date_expiration      DateTime?
+  document_preuve_url  String?
+  verifie              Boolean   @default(false)
+  date_verification    DateTime?
+
+  producteur           Producteur @relation(fields: [id_producteur], references: [id_producteur])
+  label                Label      @relation(fields: [id_label], references: [id_label])
+
+  @@map("producteur_label")
+}
+
+// ============================================================
+// PRODUIT SCANNE
+// ============================================================
+
+model ProduitScanne {
+  id_produit_scanne     String      @id @default(uuid())
+  id_utilisateur        String
+  code_barre            String      @db.VarChar(20)
+  nom_produit           String?     @db.VarChar(255)
+  marque                String?     @db.VarChar(255)
+  categorie             String?     @db.VarChar(255)  // nullable : OFF ne retourne pas toujours une catégorie
+  date_scan             DateTime
+  donnees_off           Json?
+  nutriscore            String?     @db.Char(1)
+  score_nova            Int?
+  ecoscore              String?     @db.Char(1)
+  nombre_additifs       Int?
+  additifs_controverses Json?
+  allergenes            Json?
+  origines_ingredients  Json?
+  label_bio             Boolean     @default(false)
+  localisation_scan_lat Float?      // nullable : user peut refuser la géoloc
+  localisation_scan_lng Float?
+  source_donnees        SourceScan  @default(inconnu)
+
+  utilisateur           Utilisateur       @relation(fields: [id_utilisateur], references: [id_utilisateur])
+  alternatives          AlternativeLocale[]
+
+  @@map("produit_scanne")
+}
+
+// ============================================================
+// ALTERNATIVE LOCALE
+// ============================================================
+
+model AlternativeLocale {
+  id_alternative          String    @id @default(uuid())
+  id_produit_scanne       String
+  id_producteur           String
+  type_produit_equivalent String?   @db.VarChar(255)
+  distance_km             Decimal?  @db.Decimal(6, 2)
+  score_pertinence        Int?
+  date_suggestion         DateTime
+  alternative_cliquee     Boolean   @default(false)
+  date_clic               DateTime?
+
+  produit_scanne          ProduitScanne @relation(fields: [id_produit_scanne], references: [id_produit_scanne])
+  producteur              Producteur    @relation(fields: [id_producteur], references: [id_producteur])
+
+  @@map("alternative_locale")
+}
+
+// ============================================================
+// RECHERCHE UTILISATEUR
+// ============================================================
+
+model RechercheUtilisateur {
+  id_recherche            String    @id @default(uuid())
+  id_utilisateur          String?
+  date_recherche          DateTime
+  localisation_lat        Float?
+  localisation_lng        Float?
+  rayon_km                Int?
+  type_production_filtres Json?
+  livraison_possible      Boolean   @default(false)
+  nombre_resultats        Int?
+  session_id              String?   @db.VarChar(100)
+
+  utilisateur             Utilisateur? @relation(fields: [id_utilisateur], references: [id_utilisateur])
+
+  @@map("recherche_utilisateur")
+}
+
+// ============================================================
+// NOTIFICATION
+// ============================================================
+
+model Notification {
+  id_notification  String    @id @default(uuid())
+  id_utilisateur   String
+  type             String    @db.VarChar(100)
+  titre            String    @db.VarChar(100)
+  message          String    @db.VarChar(255)
+  url              String?   @db.VarChar(500)
+  lue              Boolean   @default(false)
+  date_envoi       DateTime
+  date_lecture     DateTime?
+
+  utilisateur      Utilisateur @relation(fields: [id_utilisateur], references: [id_utilisateur])
+
+  @@map("notification")
+}
+
+// ============================================================
+// LOG
+// ============================================================
+
+model Log {
+  id_log           String    @id @default(uuid())
+  date             DateTime
+  id_utilisateur   String?
+  action           String    @db.VarChar(30)
+  ressource_type   String?   @db.VarChar(100)
+  id_ressource     String?
+  ip_address       String?   @db.VarChar(45)
+  client_version   String    @db.VarChar(100)
+  details          Json?
+
+  utilisateur      Utilisateur? @relation(fields: [id_utilisateur], references: [id_utilisateur])
+
+  @@map("log")
+}
+
+// ============================================================
+// ACTION ADMIN
+// ============================================================
+
+model ActionAdmin {
+  id_admin_action  String    @id @default(uuid())
+  id_admin         String
+  date             DateTime
+  type_action      String    @db.VarChar(100)
+  type_ressource   String    @db.VarChar(100)
+  ressource_id     String
+  old_value        Json?
+  new_value        Json?
+  motif            String?
+
+  admin            Utilisateur @relation(fields: [id_admin], references: [id_utilisateur])
+
+  @@map("action_admin")
+}
