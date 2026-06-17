@@ -8,7 +8,11 @@ RUN npm ci
 COPY . .
 
 ARG DATABASE_URL
+ARG DISABLE_ERD=true
+
 ENV DATABASE_URL=$DATABASE_URL
+ENV DISABLE_ERD=$DISABLE_ERD
+
 RUN npx prisma generate && npm run build
 
 
