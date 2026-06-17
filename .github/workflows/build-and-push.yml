@@ -18,10 +18,10 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Create temporary env file for Prisma build
+      - name: Create temporary env file for Prisma
         run: |
           echo 'DATABASE_URL="postgresql://user:password@localhost:5432/app?schema=public"' > .env
-          echo ".env created for Docker build"
+          echo ".env created for Prisma"
 
       - name: Setup Node
         uses: actions/setup-node@v4
@@ -32,7 +32,9 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
-      # Si les tests échouent à cause de la DB, commente cette étape
+      - name: Generate Prisma Client
+        run: npx prisma generate
+
       - name: Run tests
         run: npm test
 
