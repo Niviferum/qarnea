@@ -1,0 +1,32 @@
+# Env files — ne jamais versionner les secrets
+.env
+.env.*
+!.env.example
+
+# Dépendances et build
+node_modules/
+dist/
+build/
+coverage/
+
+# Prisma generated
+generated/
+src/generated/
+
+# Lockfiles — lourds et régénérables
+package-lock.json
+yarn.lock
+pnpm-lock.yaml
+
+# OS
+.DS_Store
+Thumbs.db
+
+# IDE
+.vscode/*
+!.vscode/settings.json
+!.vscode/tasks.json
+!.vscode/launch.json
+!.vscode/extensions.json
+.idea/
+*.sublime-workspace
