@@ -63,8 +63,8 @@ jobs:
         uses: docker/build-push-action@v5
         with:
           context: .
-          file: ./Dockerfile
           push: true
           tags: ${{ env.IMAGE }}
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
+          build-args: |
+            DATABASE_URL=postgresql://user:password@localhost:5432/app?schema=public
+            DISABLE_ERD=true
