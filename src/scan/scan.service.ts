@@ -89,6 +89,48 @@ export class ScanService {
     return scan;
   }
 
+  async getAlternatives(idUtilisateur: string, idProduitScanne: string) {
+    const scan = await this.prisma.produitScanne.findFirst({
+      where: { id_produit_scanne: idProduitScanne, id_utilisateur: idUtilisateur },
+      select: { code_barre: true },
+    });
+
+    if (!scan) {
+      throw new NotFoundException(`Scan ${idProduitScanne} introuvable`);
+    }
+
+    return this.prisma.alternativeLocale.findMany({
+      where: { produit_scanne: { code_barre: scan.code_barre } },
+      orderBy: { score_pertinence: 'desc' },
+      select: {
+        id_alternative: true,
+        type_produit_equivalent: true,
+        distance_km: true,
+        score_pertinence: true,
+        producteur: {
+          select: {
+            id_producteur: true,
+            nom_exploitation: true,
+            ville: true,
+            description: true,
+            telephone: true,
+            email_contact: true,
+            site_web: true,
+            vente_directe: true,
+            vente_paniers: true,
+            livraison_possible: true,
+            rayon_livraison_km: true,
+            coordonnees_lat: true,
+            coordonnees_lng: true,
+            types_production: {
+              select: { type_production: { select: { nom: true } } },
+            },
+          },
+        },
+      },
+    });
+  }
+
   private estLabelBio(labelsTags: OffProduct['labels_tags']): boolean {
     if (!labelsTags) return false;
     return labelsTags.some((tag) => TAGS_BIO.includes(tag));

@@ -51,4 +51,15 @@ export class ScanController {
   ) {
     return this.scanService.getScanParId(req.user.id_utilisateur, id);
   }
+
+  @Get(':id/alternatives')
+  @ApiOperation({ summary: 'Alternatives locales pour un scan' })
+  @ApiResponse({ status: 200, description: 'Liste des alternatives retournee' })
+  @ApiResponse({ status: 404, description: 'Scan introuvable' })
+  getAlternatives(
+    @Param('id', ParseUUIDPipe) id: string,
+    @Request() req: { user: Utilisateur },
+  ) {
+    return this.scanService.getAlternatives(req.user.id_utilisateur, id);
+  }
 }
