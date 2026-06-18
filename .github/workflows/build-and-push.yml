@@ -23,23 +23,27 @@ jobs:
 
       - name: Create temporary env file for Prisma and Docker build
         run: |
-          echo 'DATABASE_URL="postgresql://user:password@localhost:5432/app?schema=public"' > .env
-          echo 'DISABLE_ERD="true"' >> .env
-          echo ".env created for Prisma"
+          echo 'DATABASE_URL="postgresql://user:password@localhost:5432/app?schema=public"' > backend/.env
+          echo 'DISABLE_ERD="true"' >> backend/.env
+          echo "backend/.env created for Prisma"
 
       - name: Setup Node
         uses: actions/setup-node@v4
         with:
-          node-version: 20
+          node-version: 24
           cache: npm
+          cache-dependency-path: backend/package-lock.json
 
       - name: Install dependencies
+        working-directory: ./backend
         run: npm ci
 
       - name: Generate Prisma Client
+        working-directory: ./backend
         run: npx prisma generate
 
       - name: Run tests
+        working-directory: ./backend
         run: npm test
 
       - name: Set lowercase image name
