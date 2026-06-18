@@ -47,6 +47,15 @@ class GeocoderDto {
 export class AgenceBioController {
   constructor(private readonly agenceBioService: AgenceBioService) {}
 
+  @Get('operateurs/map')
+  @ApiBearerAuth()
+  @UseGuards(JwtAuthGuard)
+  @ApiOperation({ summary: 'Tous les operateurs geocodes pour la carte' })
+  @ApiResponse({ status: 200, description: 'Liste des operateurs avec lat/lng' })
+  getOperateursMap() {
+    return this.agenceBioService.getOperateursMap();
+  }
+
   @Get('operateurs')
   @ApiBearerAuth()
   @UseGuards(JwtAuthGuard)

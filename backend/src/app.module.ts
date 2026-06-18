@@ -10,6 +10,7 @@ import { UtilisateurModule } from './utilisateur/utilisateur.module';
 import { ProducteurModule } from './producteur/producteur.module';
 import { AgenceBioModule } from './agence-bio/agence-bio.module';
 import { ScanModule } from './scan/scan.module';
+import { CommandeModule } from './commande/commande.module';
 
 @Module({
   imports: [
@@ -23,6 +24,7 @@ import { ScanModule } from './scan/scan.module';
     ProducteurModule,
     AgenceBioModule,
     ScanModule,
+    CommandeModule,
   ],
   controllers: [AppController],
   providers: [
