@@ -37,6 +37,53 @@ export class AgenceBioService {
     return { data, total, page, limit };
   }
 
+  async getOperateursMap() {
+    const [operateurs, producteursSansNumero] = await Promise.all([
+      this.prisma.agenceBioOperateur.findMany({
+        where: { geocodage_effectue: true },
+        select: {
+          numero_bio: true,
+          raison_sociale: true,
+          ville: true,
+          coordonnees_lat: true,
+          coordonnees_lng: true,
+          produits_certifies: true,
+          producteur: { select: { id_producteur: true } },
+        },
+      }),
+      this.prisma.producteur.findMany({
+        where: { numero_bio: null, visible_publiquement: true, statut_verification: 'verified' },
+        select: {
+          id_producteur: true,
+          nom_exploitation: true,
+          ville: true,
+          coordonnees_lat: true,
+          coordonnees_lng: true,
+          types_production: { select: { type_production: { select: { nom: true } } } },
+        },
+      }),
+    ]);
+
+    const fromAgenceBio = operateurs.map(({ producteur, ...op }) => ({
+      ...op,
+      inscrit_qarnea: producteur !== null,
+      id_producteur: producteur?.id_producteur ?? null,
+    }));
+
+    const fromQarnea = producteursSansNumero.map((p) => ({
+      numero_bio: null,
+      raison_sociale: p.nom_exploitation,
+      ville: p.ville,
+      coordonnees_lat: p.coordonnees_lat,
+      coordonnees_lng: p.coordonnees_lng,
+      produits_certifies: p.types_production.map((t) => ({ nom: t.type_production.nom })),
+      inscrit_qarnea: true,
+      id_producteur: p.id_producteur,
+    }));
+
+    return [...fromAgenceBio, ...fromQarnea];
+  }
+
   async findByNumeroBio(numero_bio: string) {
     const operateur = await this.prisma.agenceBioOperateur.findUnique({
       where: { numero_bio },
@@ -58,12 +105,12 @@ export class AgenceBioService {
     const { pageSize, totalCount } = firstPage.pagination;
     const totalPages = Math.ceil(totalCount / pageSize);
 
-    await this.upsertPage(firstPage.items);
+    await this.upsertPage(firstPage.items, departement);
     total += firstPage.items.length;
 
     for (page = 1; page < totalPages; page++) {
       const { items } = await this.agenceBioApi.fetchPage(departement, page);
-      await this.upsertPage(items);
+      await this.upsertPage(items, departement);
       total += items.length;
     }
 
@@ -106,34 +153,30 @@ export class AgenceBioService {
 
   private async upsertPage(
     items: Awaited<ReturnType<AgenceBioApiClient['fetchPage']>>['items'],
+    departement: string,
   ) {
     for (const op of items) {
-      const adresse = op.adressesPrincipales?.[0];
+      const adresse = op.adressesOperateurs?.find((a) => a.active) ?? op.adressesOperateurs?.[0];
+      const lat = adresse?.lat ?? null;
+      const lng = adresse?.long ?? null;
+      const data = {
+        raison_sociale: op.raisonSociale,
+        siret: op.siret && op.siret.length <= 14 ? op.siret : null,
+        adresse: adresse?.lieu ?? null,
+        code_postal: adresse?.codePostal ?? null,
+        ville: adresse?.ville ?? null,
+        departement,
+        coordonnees_lat: lat,
+        coordonnees_lng: lng,
+        geocodage_effectue: lat !== null && lng !== null,
+        produits_certifies: op.productions as Prisma.InputJsonValue,
+        activites: op.activites as Prisma.InputJsonValue,
+        organisme_certificateur: op.organismeCertificateur?.nom ?? null,
+      };
       await this.prisma.agenceBioOperateur.upsert({
-        where: { numero_bio: op.numeroBio },
-        create: {
-          numero_bio: op.numeroBio,
-          raison_sociale: op.raisonSociale,
-          siret: op.siret ?? null,
-          adresse: adresse?.lieu ?? null,
-          code_postal: adresse?.codePostal ?? null,
-          ville: adresse?.ville ?? null,
-          departement: adresse?.departementLabel ?? null,
-          produits_certifies: op.produits as Prisma.InputJsonValue,
-          activites: op.activites as Prisma.InputJsonValue,
-          organisme_certificateur: op.organismeCertificateur?.nom ?? null,
-        },
-        update: {
-          raison_sociale: op.raisonSociale,
-          siret: op.siret ?? null,
-          adresse: adresse?.lieu ?? null,
-          code_postal: adresse?.codePostal ?? null,
-          ville: adresse?.ville ?? null,
-          departement: adresse?.departementLabel ?? null,
-          produits_certifies: op.produits as Prisma.InputJsonValue,
-          activites: op.activites as Prisma.InputJsonValue,
-          organisme_certificateur: op.organismeCertificateur?.nom ?? null,
-        },
+        where: { numero_bio: String(op.numeroBio) },
+        create: { numero_bio: String(op.numeroBio), ...data },
+        update: data,
       });
     }
   }

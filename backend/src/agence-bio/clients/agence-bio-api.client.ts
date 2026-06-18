@@ -1,16 +1,18 @@
 import { Injectable, Logger } from '@nestjs/common';
 
 export interface OperateurBioApi {
-  numeroBio: string;
+  numeroBio: number;
   raisonSociale: string;
   siret?: string;
-  adressesPrincipales: {
+  adressesOperateurs: {
     lieu?: string;
     codePostal?: string;
     ville?: string;
-    departementLabel?: string;
+    lat?: number;
+    long?: number;
+    active?: boolean;
   }[];
-  produits: unknown[];
+  productions: { code: string; nom: string }[];
   activites: unknown[];
   organismeCertificateur?: { nom: string };
 }
@@ -21,7 +23,7 @@ export interface PageOperateursBio {
 }
 
 const BASE_URL = 'https://opendata.agencebio.org/api/gouv/operateurs/';
-const PAGE_SIZE = 100;
+const PAGE_SIZE = 20; // API caps at 20 items per page regardless of pageSize param
 
 @Injectable()
 export class AgenceBioApiClient {
@@ -29,8 +31,8 @@ export class AgenceBioApiClient {
 
   async fetchPage(departement: string, page: number): Promise<PageOperateursBio> {
     const params = new URLSearchParams({
-      departement,
-      page: String(page),
+      departements: departement,
+      debut: String(page * PAGE_SIZE),
       pageSize: String(PAGE_SIZE),
       categories: 'P',
     });
@@ -46,6 +48,14 @@ export class AgenceBioApiClient {
       throw new Error(`Agence Bio API error: ${response.status} ${response.statusText}`);
     }
 
-    return response.json() as Promise<PageOperateursBio>;
+    const raw = (await response.json()) as { nbTotal: string; items: OperateurBioApi[] };
+    return {
+      items: raw.items,
+      pagination: {
+        page,
+        pageSize: PAGE_SIZE,
+        totalCount: parseInt(raw.nbTotal, 10),
+      },
+    };
   }
 }
