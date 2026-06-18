@@ -2,14 +2,10 @@ import 'dart:convert';
 import 'package:http/http.dart' as http;
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import '../models/auth_models.dart';
+import '../config.dart';
 
 class AuthService {
-  // localhost fonctionne via tunnel ADB (USB).
-  // Si le tunnel est coupé, on retente sur l'IP LAN du PC de dev.
-  static const _urls = [
-    'http://localhost:3001',
-    'http://10.20.132.237:3001',
-  ];
+  static const _urls = [kApiBaseUrl];
 
   Future<http.Response> _post(String path, Map<String, dynamic> body) async {
     dynamic lastError;

@@ -2,12 +2,10 @@ import 'dart:convert';
 import 'package:http/http.dart' as http;
 import 'auth_service.dart';
 import '../models/producer_form_data.dart';
+import '../config.dart';
 
 class ProducteurService {
-  static const _urls = [
-    'http://localhost:3001',
-    'http://10.20.132.237:3001',
-  ];
+  static const _urls = [kApiBaseUrl];
 
   final _authService = AuthService();
 

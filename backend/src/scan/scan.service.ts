@@ -1,6 +1,6 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
-import { Prisma, SourceScan } from '../generated/prisma';
+import { Prisma, SourceScan, StatutVerification } from '../generated/prisma';
 import { OpenFoodFactsApiClient, OffProduct } from './clients/openfoodfacts-api.client';
 import { ScannerProduitDto } from './dto/scanner-produit.dto';
 import { HistoriqueScanDto } from './dto/historique-scan.dto';
@@ -92,43 +92,70 @@ export class ScanService {
   async getAlternatives(idUtilisateur: string, idProduitScanne: string) {
     const scan = await this.prisma.produitScanne.findFirst({
       where: { id_produit_scanne: idProduitScanne, id_utilisateur: idUtilisateur },
-      select: { code_barre: true },
+      select: { donnees_off: true },
     });
 
     if (!scan) {
       throw new NotFoundException(`Scan ${idProduitScanne} introuvable`);
     }
 
-    return this.prisma.alternativeLocale.findMany({
-      where: { produit_scanne: { code_barre: scan.code_barre } },
-      orderBy: { score_pertinence: 'desc' },
+    const donnees = scan.donnees_off as Record<string, unknown> | null;
+    const categoriesTags = Array.isArray(donnees?.['categories_tags'])
+      ? (donnees['categories_tags'] as string[])
+      : [];
+
+    if (!categoriesTags.length) return [];
+
+    const types = await this.prisma.typeProduction.findMany({
+      where: { off_categories_tags: { hasSome: categoriesTags } },
       select: {
-        id_alternative: true,
-        type_produit_equivalent: true,
-        distance_km: true,
-        score_pertinence: true,
-        producteur: {
+        nom: true,
+        producteurs: {
+          where: {
+            producteur: {
+              visible_publiquement: true,
+              statut_verification: StatutVerification.verified,
+            },
+          },
           select: {
-            id_producteur: true,
-            nom_exploitation: true,
-            ville: true,
-            description: true,
-            telephone: true,
-            email_contact: true,
-            site_web: true,
-            vente_directe: true,
-            vente_paniers: true,
-            livraison_possible: true,
-            rayon_livraison_km: true,
-            coordonnees_lat: true,
-            coordonnees_lng: true,
-            types_production: {
-              select: { type_production: { select: { nom: true } } },
+            producteur: {
+              select: {
+                id_producteur: true,
+                nom_exploitation: true,
+                ville: true,
+                description: true,
+                telephone: true,
+                email_contact: true,
+                site_web: true,
+                vente_directe: true,
+                vente_paniers: true,
+                livraison_possible: true,
+                rayon_livraison_km: true,
+                coordonnees_lat: true,
+                coordonnees_lng: true,
+                types_production: {
+                  select: { type_production: { select: { nom: true } } },
+                },
+              },
             },
           },
         },
       },
     });
+
+    const seen = new Set<string>();
+    const results: { type_produit_equivalent: string; producteur: unknown }[] = [];
+
+    for (const type of types) {
+      for (const { producteur } of type.producteurs) {
+        if (!seen.has(producteur.id_producteur)) {
+          seen.add(producteur.id_producteur);
+          results.push({ type_produit_equivalent: type.nom, producteur });
+        }
+      }
+    }
+
+    return results;
   }
 
   private estLabelBio(labelsTags: OffProduct['labels_tags']): boolean {

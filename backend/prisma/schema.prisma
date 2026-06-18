@@ -249,6 +249,7 @@ model TypeProduction {
   nom                 String    @db.VarChar(50)
   slug                String    @unique @db.VarChar(300)
   description         String    @db.VarChar(300)
+  off_categories_tags String[]  @default([])
   id_categorie_parent String?
 
   categorie_parent    TypeProduction?  @relation("TypeProductionParent", fields: [id_categorie_parent], references: [id_type_production])
@@ -359,7 +360,6 @@ model AlternativeLocale {
   id_producteur           String
   type_produit_equivalent String?   @db.VarChar(255)
   prix_unitaire           Decimal?  @db.Decimal(8, 2)
-  distance_km             Decimal?  @db.Decimal(6, 2)
   score_pertinence        Int?
   date_suggestion         DateTime
   alternative_cliquee     Boolean   @default(false)

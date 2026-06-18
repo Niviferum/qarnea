@@ -50,6 +50,7 @@ export class OpenFoodFactsApiClient {
         Accept: 'application/json',
         'User-Agent': 'Qarnea/1.0 (contact@qarnea.app)',
       },
+      signal: AbortSignal.timeout(8000),
     });
 
     if (response.status === 404) {

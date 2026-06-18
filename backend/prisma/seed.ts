@@ -14,35 +14,39 @@ const PASSWORD_HASH = '$2b$10$moM.qUXsam1TvEkanq1YN.wVnNkGhR3NQ2vqVqhj8tyYJU8dVj
 
 const IDS = {
   // Utilisateurs
-  admin:          'seed-0001-0000-0000-000000000001',
-  conso1:         'seed-0002-0000-0000-000000000001',
-  conso2:         'seed-0003-0000-0000-000000000001',
-  prodBeausoleil: 'seed-0004-0000-0000-000000000001',
-  prodBreizh:     'seed-0005-0000-0000-000000000001',
-  prodCharcuterie:'seed-0006-0000-0000-000000000001',
+  admin:            'seed-0001-0000-0000-000000000001',
+  conso1:           'seed-0002-0000-0000-000000000001',
+  conso2:           'seed-0003-0000-0000-000000000001',
+  prodBeausoleil:   'seed-0004-0000-0000-000000000001',
+  prodBreizh:       'seed-0005-0000-0000-000000000001',
+  prodCharcuterie:  'seed-0006-0000-0000-000000000001',
+  prodCombrailles:  'seed-0007-0000-0000-000000000001',
 
   // Producteurs
-  beausoleil:     'seed-0010-0000-0000-000000000001',
-  breizh:         'seed-0011-0000-0000-000000000001',
-  charcuterie:    'seed-0012-0000-0000-000000000001',
+  beausoleil:       'seed-0010-0000-0000-000000000001',
+  breizh:           'seed-0011-0000-0000-000000000001',
+  charcuterie:      'seed-0012-0000-0000-000000000001',
+  combrailles:      'seed-0013-0000-0000-000000000001',
 
   // Types de production
-  typeLegumes:    'seed-0020-0000-0000-000000000001',
-  typeFruits:     'seed-0021-0000-0000-000000000001',
-  typeLait:       'seed-0022-0000-0000-000000000001',
-  typeViande:     'seed-0023-0000-0000-000000000001',
-  typeMiel:       'seed-0024-0000-0000-000000000001',
+  typeLegumes:      'seed-0020-0000-0000-000000000001',
+  typeFruits:       'seed-0021-0000-0000-000000000001',
+  typeLait:         'seed-0022-0000-0000-000000000001',
+  typeViande:       'seed-0023-0000-0000-000000000001',
+  typeMiel:         'seed-0024-0000-0000-000000000001',
+  typeEaux:         'seed-0025-0000-0000-000000000001',
 
   // Labels
-  labelBio:       'seed-0030-0000-0000-000000000001',
-  labelHVE:       'seed-0031-0000-0000-000000000001',
-  labelRouge:     'seed-0032-0000-0000-000000000001',
+  labelBio:         'seed-0030-0000-0000-000000000001',
+  labelHVE:         'seed-0031-0000-0000-000000000001',
+  labelRouge:       'seed-0032-0000-0000-000000000001',
 
   // Scans
-  scanNutella:    'seed-0040-0000-0000-000000000001',
-  scanLactel:     'seed-0041-0000-0000-000000000001',
-  scanDanette:    'seed-0042-0000-0000-000000000001',
-  scanJambon:     'seed-0043-0000-0000-000000000001',
+  scanNutella:      'seed-0040-0000-0000-000000000001',
+  scanLactel:       'seed-0041-0000-0000-000000000001',
+  scanDanette:      'seed-0042-0000-0000-000000000001',
+  scanJambon:       'seed-0043-0000-0000-000000000001',
+  scanVolvic:       'seed-0044-0000-0000-000000000001',
 };
 
 async function main() {
@@ -125,6 +129,20 @@ async function main() {
   });
 
   await prisma.utilisateur.upsert({
+    where: { email: 'contact@source-combrailles.fr' },
+    update: {},
+    create: {
+      id_utilisateur: IDS.prodCombrailles,
+      email: 'contact@source-combrailles.fr',
+      password_hash: PASSWORD_HASH,
+      nom: 'Aubert',
+      prenom: 'Céline',
+      role: Role.producteur,
+      statut_compte: StatutCompte.actif,
+    },
+  });
+
+  await prisma.utilisateur.upsert({
     where: { email: 'contact@breizh-elevage.fr' },
     update: {},
     create: {
@@ -143,17 +161,69 @@ async function main() {
   // ── Types de production ──────────────────────────────────────────────────────
 
   const types = [
-    { id_type_production: IDS.typeLegumes, nom: 'Fruits et légumes',         slug: 'fruits-et-legumes',          description: 'Maraîchage, arboriculture et petits fruits' },
-    { id_type_production: IDS.typeFruits,  nom: 'Jus de fruits artisanaux',  slug: 'jus-de-fruits-artisanaux',   description: 'Jus pressés à froid, sans conservateurs ni sucres ajoutés' },
-    { id_type_production: IDS.typeLait,    nom: 'Produits laitiers et fromages', slug: 'produits-laitiers-fromages', description: 'Lait cru, fromages fermiers, beurre et crème' },
-    { id_type_production: IDS.typeViande,  nom: 'Viande et volaille',         slug: 'viande-volaille',            description: 'Élevage bovin, porcin, ovin et volaille' },
-    { id_type_production: IDS.typeMiel,    nom: 'Miel et apiculture',         slug: 'miel-apiculture',            description: 'Miels mono-floraux et produits de la ruche' },
+    {
+      id_type_production: IDS.typeLegumes,
+      nom: 'Fruits et légumes',
+      slug: 'fruits-et-legumes',
+      description: 'Maraîchage, arboriculture et petits fruits',
+      off_categories_tags: [
+        'en:vegetables', 'en:fruits', 'en:fresh-vegetables', 'en:fresh-fruits',
+        'en:plant-based-foods', 'en:fruits-and-vegetables-based-foods',
+      ],
+    },
+    {
+      id_type_production: IDS.typeFruits,
+      nom: 'Jus de fruits artisanaux',
+      slug: 'jus-de-fruits-artisanaux',
+      description: 'Jus pressés à froid, sans conservateurs ni sucres ajoutés',
+      off_categories_tags: [
+        'en:fruit-juices', 'en:juices-and-nectars', 'en:fruit-based-beverages',
+      ],
+    },
+    {
+      id_type_production: IDS.typeLait,
+      nom: 'Produits laitiers et fromages',
+      slug: 'produits-laitiers-fromages',
+      description: 'Lait cru, fromages fermiers, beurre et crème',
+      off_categories_tags: [
+        'en:dairy-products', 'en:milks', 'en:cheeses', 'en:fermented-milk-products',
+        'en:yogurts', 'en:dairies',
+      ],
+    },
+    {
+      id_type_production: IDS.typeViande,
+      nom: 'Viande et volaille',
+      slug: 'viande-volaille',
+      description: 'Élevage bovin, porcin, ovin et volaille',
+      off_categories_tags: [
+        'en:meats', 'en:meats-and-their-products', 'en:pork', 'en:hams',
+        'en:charcuterie', 'en:cooked-charcuterie-products', 'en:cooked-meats',
+        'en:poultries', 'en:beef', 'en:deli-meat',
+      ],
+    },
+    {
+      id_type_production: IDS.typeMiel,
+      nom: 'Miel et apiculture',
+      slug: 'miel-apiculture',
+      description: 'Miels mono-floraux et produits de la ruche',
+      off_categories_tags: ['en:honeys', 'en:honey', 'en:sweeteners'],
+    },
+    {
+      id_type_production: IDS.typeEaux,
+      nom: 'Eaux de source et boissons',
+      slug: 'eaux-de-source-boissons',
+      description: 'Eaux de source, eaux de captage artisanal et boissons non alcoolisées',
+      off_categories_tags: [
+        'en:beverages', 'en:waters', 'en:spring-waters', 'en:mineral-waters',
+        'en:natural-mineral-waters', 'en:beverages-and-beverages-preparations',
+      ],
+    },
   ];
 
   for (const t of types) {
     await prisma.typeProduction.upsert({
       where: { slug: t.slug },
-      update: {},
+      update: { off_categories_tags: t.off_categories_tags },
       create: t,
     });
   }
@@ -342,6 +412,53 @@ async function main() {
     create: { id_producteur: IDS.charcuterie, id_type_production: IDS.typeViande, production_principale: true },
   });
 
+  await prisma.producteur.upsert({
+    where: { raison_sociale: 'SARL Source des Combrailles' },
+    update: {},
+    create: {
+      id_producteur: IDS.combrailles,
+      id_utilisateur: IDS.prodCombrailles,
+      nom_exploitation: 'Source des Combrailles',
+      raison_sociale: 'SARL Source des Combrailles',
+      siret: '77788899900011',
+      description: 'Captage artisanal d\'eau de source sur le massif des Combrailles. Conditionnée en bouteilles consignées en verre depuis 1994.',
+      description_pratiques: 'Source protégée en zone Natura 2000, zéro traitement chimique, conditionnement local en verre consigné.',
+      adresse_ligne1: '12 chemin de la Source',
+      ville: 'Saint-Gervais-d\'Auvergne',
+      region: 'Auvergne-Rhône-Alpes',
+      departement: 'Puy-de-Dôme',
+      coordonnees_lat: 46.0247,
+      coordonnees_lng: 2.8219,
+      telephone: '06 78 90 12 34',
+      email_contact: 'contact@source-combrailles.fr',
+      horaires_ouverture: {
+        lundi: 'fermé',
+        mardi: '9h-12h',
+        mercredi: '9h-12h',
+        jeudi: '9h-12h',
+        vendredi: '9h-12h',
+        samedi: '9h-12h',
+        dimanche: 'fermé',
+      },
+      jours_marches: 'Marché de Riom (vendredi), Marché de Vichy (samedi)',
+      vente_directe: true,
+      vente_paniers: false,
+      livraison_possible: true,
+      rayon_livraison_km: 50,
+      click_and_collect: false,
+      commande_en_ligne: false,
+      statut_verification: StatutVerification.verified,
+      date_verification: new Date('2025-06-01'),
+      visible_publiquement: true,
+    },
+  });
+
+  await prisma.producteurTypeProduction.upsert({
+    where: { id_producteur_id_type_production: { id_producteur: IDS.combrailles, id_type_production: IDS.typeEaux } },
+    update: {},
+    create: { id_producteur: IDS.combrailles, id_type_production: IDS.typeEaux, production_principale: true },
+  });
+
   console.log('✓ Producteurs');
 
   // ── Labels producteurs ───────────────────────────────────────────────────────
@@ -452,6 +569,39 @@ async function main() {
   });
 
   await prisma.produitScanne.upsert({
+    where: { id_produit_scanne: IDS.scanVolvic },
+    update: {},
+    create: {
+      id_produit_scanne: IDS.scanVolvic,
+      id_utilisateur: IDS.conso1,
+      code_barre: '3057640265358',
+      nom_produit: 'Eau minérale naturelle',
+      marque: 'Volvic',
+      categorie: 'Eaux minérales naturelles',
+      date_scan: new Date('2026-06-18T08:00:00'),
+      nutriscore: 'A',
+      score_nova: 1,
+      ecoscore: null,
+      nombre_additifs: 0,
+      allergenes: [],
+      origines_ingredients: ['en:france'],
+      label_bio: false,
+      source_donnees: SourceScan.open_food_facts,
+      donnees_off: {
+        categories_tags: [
+          'en:beverages-and-beverages-preparations',
+          'en:beverages',
+          'en:waters',
+          'en:spring-waters',
+          'en:mineral-waters',
+          'en:natural-mineral-waters',
+        ],
+        labels_tags: ['en:carbon-trust', 'en:certified-b-corporation', 'fr:triman'],
+      },
+    },
+  });
+
+  await prisma.produitScanne.upsert({
     where: { id_produit_scanne: IDS.scanDanette },
     update: {},
     create: {
@@ -480,24 +630,31 @@ async function main() {
 
   const alts = [
     {
+      id_produit_scanne: IDS.scanVolvic,
+      id_producteur: IDS.combrailles,
+      type_produit_equivalent: 'Eau de source artisanale en verre consigné',
+      prix_unitaire: 0.80,
+      score_pertinence: 85,
+    },
+    {
       id_produit_scanne: IDS.scanJambon,
       id_producteur: IDS.charcuterie,
       type_produit_equivalent: 'Jambon cuit artisanal sans nitrite',
-      distance_km: 11.2,
+      prix_unitaire: 5.90,
       score_pertinence: 88,
     },
     {
       id_produit_scanne: IDS.scanLactel,
       id_producteur: IDS.breizh,
       type_produit_equivalent: 'Lait cru frais de vache',
-      distance_km: 4.8,
+      prix_unitaire: 1.20,
       score_pertinence: 92,
     },
     {
       id_produit_scanne: IDS.scanDanette,
       id_producteur: IDS.breizh,
       type_produit_equivalent: 'Fromage blanc fermier nature',
-      distance_km: 4.8,
+      prix_unitaire: 2.80,
       score_pertinence: 70,
     },
   ];
@@ -519,9 +676,10 @@ async function main() {
   console.log('  admin@qarnea.fr           → Admin');
   console.log('  jean.consumer@test.fr     → Consommateur');
   console.log('  marie.consumer@test.fr    → Consommateur');
-  console.log('  contact@ferme-beausoleil.fr    → Producteur (légumes bio)');
-  console.log('  contact@breizh-elevage.fr      → Producteur (lait/fromages)');
+  console.log('  contact@ferme-beausoleil.fr     → Producteur (légumes bio)');
+  console.log('  contact@breizh-elevage.fr       → Producteur (lait/fromages)');
   console.log('  contact@charcuterie-bretonne.fr → Producteur (jambon/charcuterie)');
+  console.log('  contact@source-combrailles.fr   → Producteur (eaux de source)');
 }
 
 main()

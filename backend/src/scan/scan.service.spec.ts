@@ -54,6 +54,9 @@ const mockPrisma = {
     count: jest.fn(),
     findFirst: jest.fn(),
   },
+  typeProduction: {
+    findMany: jest.fn(),
+  },
 };
 
 const mockOffApi = {
@@ -203,6 +206,93 @@ describe('ScanService', () => {
       });
 
       expect(result.origine_animale).toBe(true);
+    });
+
+  });
+
+  // ----------------------------------------------------------------
+  // getAlternatives
+  // ----------------------------------------------------------------
+
+  describe('getAlternatives', () => {
+    const mockProducteur = {
+      id_producteur: 'prod-uuid-1',
+      nom_exploitation: 'Source des Combrailles',
+      ville: 'Saint-Gervais-d\'Auvergne',
+    };
+
+    it('retourne les producteurs dont le TypeProduction correspond aux categories_tags du scan', async () => {
+      mockPrisma.produitScanne.findFirst.mockResolvedValue({
+        id_produit_scanne: 'scan-uuid-1',
+        donnees_off: { categories_tags: ['en:beverages', 'en:waters'] },
+      });
+      mockPrisma.typeProduction.findMany.mockResolvedValue([
+        {
+          nom: 'Eaux de source et boissons',
+          producteurs: [{ producteur: mockProducteur }],
+        },
+      ]);
+
+      const result = await service.getAlternatives(ID_UTILISATEUR, 'scan-uuid-1');
+
+      expect(mockPrisma.typeProduction.findMany).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: { off_categories_tags: { hasSome: ['en:beverages', 'en:waters'] } },
+        }),
+      );
+      expect(result).toHaveLength(1);
+      expect(result[0]).toMatchObject({
+        type_produit_equivalent: 'Eaux de source et boissons',
+        producteur: mockProducteur,
+      });
+    });
+
+    it('retourne une liste vide si donnees_off ne contient pas de categories_tags', async () => {
+      mockPrisma.produitScanne.findFirst.mockResolvedValue({
+        id_produit_scanne: 'scan-uuid-1',
+        donnees_off: {},
+      });
+
+      const result = await service.getAlternatives(ID_UTILISATEUR, 'scan-uuid-1');
+
+      expect(result).toEqual([]);
+      expect(mockPrisma.typeProduction.findMany).not.toHaveBeenCalled();
+    });
+
+    it('retourne une liste vide si aucun TypeProduction ne correspond', async () => {
+      mockPrisma.produitScanne.findFirst.mockResolvedValue({
+        id_produit_scanne: 'scan-uuid-1',
+        donnees_off: { categories_tags: ['en:unknown-category'] },
+      });
+      mockPrisma.typeProduction.findMany.mockResolvedValue([]);
+
+      const result = await service.getAlternatives(ID_UTILISATEUR, 'scan-uuid-1');
+
+      expect(result).toEqual([]);
+    });
+
+    it('deduplique les producteurs si plusieurs TypeProduction matchent', async () => {
+      mockPrisma.produitScanne.findFirst.mockResolvedValue({
+        id_produit_scanne: 'scan-uuid-1',
+        donnees_off: { categories_tags: ['en:meats', 'en:pork'] },
+      });
+      mockPrisma.typeProduction.findMany.mockResolvedValue([
+        { nom: 'Viande et volaille',  producteurs: [{ producteur: mockProducteur }] },
+        { nom: 'Charcuterie',         producteurs: [{ producteur: mockProducteur }] },
+      ]);
+
+      const result = await service.getAlternatives(ID_UTILISATEUR, 'scan-uuid-1');
+
+      expect(result).toHaveLength(1);
+    });
+
+    it('leve NotFoundException si le scan est introuvable ou n\'appartient pas a l\'utilisateur', async () => {
+      mockPrisma.produitScanne.findFirst.mockResolvedValue(null);
+
+      await expect(service.getAlternatives(ID_UTILISATEUR, 'scan-inconnu')).rejects.toThrow(
+        NotFoundException,
+      );
+      expect(mockPrisma.typeProduction.findMany).not.toHaveBeenCalled();
     });
   });
 

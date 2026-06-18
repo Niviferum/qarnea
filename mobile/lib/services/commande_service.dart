@@ -1,11 +1,10 @@
 import 'dart:convert';
 import 'package:http/http.dart' as http;
 import 'auth_service.dart';
-import '../models/alternative_locale.dart';
-import '../models/scan_result.dart';
+import '../models/tarification.dart';
 import '../config.dart';
 
-class ScanService {
+class CommandeService {
   static const _urls = [kApiBaseUrl];
 
   final _authService = AuthService();
@@ -52,45 +51,40 @@ class ScanService {
     throw lastError;
   }
 
-  Future<ScanResult> scanProduct(String codeBarre) async {
-    final response = await _post('/scan', {'code_barre': codeBarre});
+  Future<Tarification> getTarification(double prixProducteur) async {
+    final prix = prixProducteur.toStringAsFixed(2);
+    final response = await _get('/commandes/tarification?prix=$prix');
 
-    switch (response.statusCode) {
-      case 201:
-        return ScanResult.fromJson(
-          jsonDecode(response.body) as Map<String, dynamic>,
-        );
-      case 404:
-        throw ScanException('Produit introuvable sur Open Food Facts');
-      case 401:
-        throw ScanException('Session expirée, reconnectez-vous');
-      default:
-        throw ScanException('Erreur serveur (${response.statusCode})');
+    if (response.statusCode == 200) {
+      return Tarification.fromJson(
+        jsonDecode(response.body) as Map<String, dynamic>,
+      );
     }
+    throw CommandeException('Impossible de calculer la tarification (${response.statusCode})');
   }
 
-  Future<List<AlternativeLocale>> getAlternatives(String idScan) async {
-    final response = await _get('/scan/$idScan/alternatives');
+  Future<String> creerPaiement({
+    required double prixProducteur,
+    required String description,
+    required String idProducteur,
+  }) async {
+    final response = await _post('/commandes/paiement', {
+      'prix_producteur': prixProducteur,
+      'description': description,
+      'id_producteur': idProducteur,
+    });
 
-    switch (response.statusCode) {
-      case 200:
-        final list = jsonDecode(response.body) as List<dynamic>;
-        return list
-            .map((e) => AlternativeLocale.fromJson(e as Map<String, dynamic>))
-            .toList();
-      case 404:
-        throw ScanException('Scan introuvable');
-      case 401:
-        throw ScanException('Session expirée, reconnectez-vous');
-      default:
-        throw ScanException('Erreur serveur (${response.statusCode})');
+    if (response.statusCode == 201) {
+      final data = jsonDecode(response.body) as Map<String, dynamic>;
+      return data['client_secret'] as String;
     }
+    throw CommandeException('Erreur lors de la création du paiement (${response.statusCode})');
   }
 }
 
-class ScanException implements Exception {
+class CommandeException implements Exception {
   final String message;
-  ScanException(this.message);
+  CommandeException(this.message);
 
   @override
   String toString() => message;

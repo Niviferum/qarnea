@@ -1,31 +1,42 @@
+import 'dart:math';
+
 class AlternativeLocale {
-  final String idAlternative;
-  final String? typeProduitEquivalent;
-  final double? distanceKm;
-  final int? scorePertinence;
+  final String typeProduitEquivalent;
   final AlternativeProducteur producteur;
 
   const AlternativeLocale({
-    required this.idAlternative,
-    this.typeProduitEquivalent,
-    this.distanceKm,
-    this.scorePertinence,
+    required this.typeProduitEquivalent,
     required this.producteur,
   });
 
   factory AlternativeLocale.fromJson(Map<String, dynamic> json) {
     return AlternativeLocale(
-      idAlternative: json['id_alternative'] as String,
-      typeProduitEquivalent: json['type_produit_equivalent'] as String?,
-      distanceKm: json['distance_km'] == null
-          ? null
-          : double.parse(json['distance_km'].toString()),
-      scorePertinence: json['score_pertinence'] as int?,
+      typeProduitEquivalent: json['type_produit_equivalent'] as String,
       producteur: AlternativeProducteur.fromJson(
         json['producteur'] as Map<String, dynamic>,
       ),
     );
   }
+
+  /// Distance en km entre le producteur et une position de référence (Haversine).
+  double? distanceKm(double? userLat, double? userLng) {
+    if (userLat == null || userLng == null) return null;
+    return _haversineKm(
+      userLat, userLng,
+      producteur.coordonneesLat, producteur.coordonneesLng,
+    );
+  }
+
+  static double _haversineKm(double lat1, double lng1, double lat2, double lng2) {
+    const r = 6371.0;
+    final dLat = _rad(lat2 - lat1);
+    final dLng = _rad(lng2 - lng1);
+    final a = sin(dLat / 2) * sin(dLat / 2) +
+        cos(_rad(lat1)) * cos(_rad(lat2)) * sin(dLng / 2) * sin(dLng / 2);
+    return r * 2 * asin(sqrt(a));
+  }
+
+  static double _rad(double deg) => deg * pi / 180;
 }
 
 class AlternativeProducteur {

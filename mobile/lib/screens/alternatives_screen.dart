@@ -6,11 +6,15 @@ import '../theme/colors.dart';
 class AlternativesScreen extends StatefulWidget {
   final String idScan;
   final String nomProduitScanne;
+  final double? userLat;
+  final double? userLng;
 
   const AlternativesScreen({
     super.key,
     required this.idScan,
     required this.nomProduitScanne,
+    this.userLat,
+    this.userLng,
   });
 
   @override
@@ -59,8 +63,11 @@ class _AlternativesScreenState extends State<AlternativesScreen> {
                     padding: const EdgeInsets.fromLTRB(20, 16, 20, 32),
                     itemCount: alternatives.length,
                     separatorBuilder: (_, _) => const SizedBox(height: 12),
-                    itemBuilder: (_, i) =>
-                        _AlternativeCard(alternative: alternatives[i]),
+                    itemBuilder: (_, i) => _AlternativeCard(
+                      alternative: alternatives[i],
+                      userLat: widget.userLat,
+                      userLng: widget.userLng,
+                    ),
                   );
                 },
               ),
@@ -131,12 +138,19 @@ class _Header extends StatelessWidget {
 
 class _AlternativeCard extends StatelessWidget {
   final AlternativeLocale alternative;
+  final double? userLat;
+  final double? userLng;
 
-  const _AlternativeCard({required this.alternative});
+  const _AlternativeCard({
+    required this.alternative,
+    this.userLat,
+    this.userLng,
+  });
 
   @override
   Widget build(BuildContext context) {
     final p = alternative.producteur;
+    final distKm = alternative.distanceKm(userLat, userLng);
 
     return Container(
       decoration: BoxDecoration(
@@ -163,7 +177,7 @@ class _AlternativeCard extends StatelessWidget {
                   ),
                 ),
               ),
-              if (alternative.distanceKm != null) ...[
+              if (distKm != null) ...[
                 const SizedBox(width: 8),
                 Container(
                   padding: const EdgeInsets.symmetric(
@@ -173,7 +187,7 @@ class _AlternativeCard extends StatelessWidget {
                     borderRadius: BorderRadius.circular(20),
                   ),
                   child: Text(
-                    '${alternative.distanceKm!.toStringAsFixed(1)} km',
+                    '${distKm.toStringAsFixed(1)} km',
                     style: const TextStyle(
                       fontFamily: 'HostGrotesk',
                       fontSize: 12,
@@ -197,27 +211,25 @@ class _AlternativeCard extends StatelessWidget {
             ),
           ),
 
-          // Produit équivalent
-          if (alternative.typeProduitEquivalent != null) ...[
-            const SizedBox(height: 12),
-            Container(
-              width: double.infinity,
-              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-              decoration: BoxDecoration(
-                color: const Color(0xFFDCEFD6),
-                borderRadius: BorderRadius.circular(12),
-              ),
-              child: Text(
-                alternative.typeProduitEquivalent!,
-                style: const TextStyle(
-                  fontFamily: 'HostGrotesk',
-                  fontSize: 13,
-                  fontWeight: FontWeight.w500,
-                  color: Color(0xFF2D6A2D),
-                ),
+          // Type de produit équivalent
+          const SizedBox(height: 12),
+          Container(
+            width: double.infinity,
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+            decoration: BoxDecoration(
+              color: const Color(0xFFDCEFD6),
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: Text(
+              alternative.typeProduitEquivalent,
+              style: const TextStyle(
+                fontFamily: 'HostGrotesk',
+                fontSize: 13,
+                fontWeight: FontWeight.w500,
+                color: Color(0xFF2D6A2D),
               ),
             ),
-          ],
+          ),
 
           const SizedBox(height: 12),
           Text(
