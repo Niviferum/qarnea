@@ -5,6 +5,7 @@ import '../theme/colors.dart';
 import '../theme/transitions.dart';
 import 'consumer_profile_screen.dart';
 import 'consumer_scanner_view.dart';
+import 'carte_screen.dart';
 
 class MarketplaceScreen extends StatefulWidget {
   const MarketplaceScreen({super.key});
@@ -71,7 +72,7 @@ class _MarketplaceScreenState extends State<MarketplaceScreen> {
             IndexedStack(
               index: _selectedNavIndex,
               children: [
-                _buildPlaceholder(Icons.location_on_outlined, 'Carte', 'Bientôt disponible'),
+                const CarteScreen(),
                 _buildMarketplaceTab(bottomPadding),
                 _buildPlaceholder(Icons.home_outlined, 'Accueil', 'Bientôt disponible'),
                 ConsumerScannerView(isActive: _selectedNavIndex == 3),

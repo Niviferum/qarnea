@@ -3,7 +3,7 @@ import 'package:flutter_svg/flutter_svg.dart';
 import '../services/auth_service.dart';
 import '../theme/colors.dart';
 import '../theme/transitions.dart';
-import 'marketplace_screen.dart';
+import 'home_screen.dart';
 import 'onboarding_screen.dart';
 
 class SplashScreen extends StatefulWidget {
@@ -37,7 +37,7 @@ class _SplashScreenState extends State<SplashScreen> {
 
     Navigator.of(context).pushReplacement(
       token != null
-          ? fadeRoute(const MarketplaceScreen())
+          ? fadeRoute(const HomeScreen())
           : fadeRoute(const OnboardingScreen()),
     );
   }
