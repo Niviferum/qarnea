@@ -16,7 +16,7 @@ class MarketplaceScreen extends StatefulWidget {
 
 class _MarketplaceScreenState extends State<MarketplaceScreen> {
   final _searchController = TextEditingController();
-  int _selectedNavIndex = 1;
+  int _selectedNavIndex = 2;
   String? _selectedTag;
 
   static const _tags = [
@@ -73,8 +73,8 @@ class _MarketplaceScreenState extends State<MarketplaceScreen> {
               index: _selectedNavIndex,
               children: [
                 const CarteScreen(),
+                _buildPlaceholder(Icons.shopping_basket_outlined, 'Courses', 'Bientôt disponible'),
                 _buildMarketplaceTab(bottomPadding),
-                _buildPlaceholder(Icons.home_outlined, 'Accueil', 'Bientôt disponible'),
                 ConsumerScannerView(isActive: _selectedNavIndex == 3),
                 _buildPlaceholder(Icons.inventory_2_outlined, 'Commandes', 'Bientôt disponible'),
               ],
