@@ -1,5 +1,5 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { IsNumber, IsPositive, IsString, IsUUID, Max, MaxLength } from 'class-validator';
+import { IsNumber, IsPositive, IsString, Max, MaxLength } from 'class-validator';
 import { Type } from 'class-transformer';
 
 export class CreerPaiementDto {
@@ -16,6 +16,6 @@ export class CreerPaiementDto {
   description: string;
 
   @ApiProperty({ example: 'uuid-producteur' })
-  @IsUUID()
+  @IsString()
   id_producteur: string;
 }
